@@ -37,10 +37,18 @@ int leftedge(void);
 int rightedge(void);
 int maxedge(void);
 int minedge(void);
+void Button_Init(void);
+void setmode(void);
 
 float turncenter=5.8;
 float turnright=7.4;
 float turnleft=4.3;
+
+int mode=0;
+int pressed=0;
+
+int maxspeed=40;
+int turnspeed=30;
 
 //BLE TX=PTB10=P6
 //BLE RX=PTB11=P5
@@ -95,6 +103,7 @@ void line_averager(void);
 void edge_finder(void);
 int maxsmooth(void);
 int minsmooth(void);
+void setmotorspeed(float);
 
 
 // Pixel counter for camera logic
@@ -144,107 +153,71 @@ int main(void)
 	init_FTM2(); // To generate CLK, SI, and trigger ADC
 	init_ADC0();
 	init_PIT();	// To trigger camera read based on integration time
-				FTM3_set_duty_cycle(5.8,50,1);
+	//Button_Init();
+			FTM3_set_duty_cycle(5.8,50,1);
 
 	for(;;) {
-
-
-	
+		//setmode();
 		uart0_put("LEFT:");
 		uart0_putnumU(left);
 		uart0_put("RIGHT:");
 		uart0_putnumU(right);
+
+		uart3_put("LEFT:");
+		uart3_putnumU(left);
+		uart3_put("RIGHT:");
+		uart3_putnumU(right);
 		
-		int pos=((right-left)/2)+left;
+		int pos;
+		if (((right-left)>40) && (right>50) && (left<90)){
+				pos=((right-left)/2)+left;
+		}
+		//int pos=((right-left)/2)+left;
+
+		
+		
 		uart0_put("pos:");
 		uart0_putnumU(pos);
 		uart3_put("pos:");
 		uart3_putnumU(pos);
-		uart3_put("\n");
-		uart0_putnumU(maxsmoth);
-	/*	if ((maxsmoth<30000)&&(maxsmoth>1000)){
+		//uart3_put("\n");
+		//uart3_putnumU(maxsmoth);
+		/*if ((maxsmoth<40000)&&(maxsmoth>1000)){
 			FTM0_set_duty_cycle(0,10000,1,1);
 			FTM0_set_duty_cycle(0,10000,1,0);
+			for(;;){
 			uart3_put("BREAK");
 			uart0_put("BREAK");
-			break;
+			}
 		}*/
-		FTM0_set_duty_cycle(30,10000,1,1);
-		FTM0_set_duty_cycle(30,10000,1,0);
-		
-		if (pos<62){
-		//	uart3_put("right");
+
+		if (pos<64){
+			//uart3_put("right");
 			int turnammount=((64-pos)/2);
 			uart0_put("right");
-			FTM3_set_duty_cycle((turncenter+0.2*turnammount),50,1);
-		}else if(pos>66){
-		//	uart3_put("left");
+			float servo=(turncenter+0.2*turnammount);
+			//uart3_putnumU(servo);
+			FTM3_set_duty_cycle(servo,50,1);
+			setmotorspeed(servo);
+		}else if(pos>64){
+			//uart3_put("left");
 			int turnammount=((pos-64)/2);
 			uart0_put("left");
-			FTM3_set_duty_cycle(turncenter-0.2*turnammount,50,1);
+			float servo=(turncenter-0.2*turnammount);
+			//uart3_putnumU(servo);
+			FTM3_set_duty_cycle(servo,50,1);
+			setmotorspeed(servo);
 		}else{
 			//uart3_put("straight");
 			uart0_put("straight");
-			FTM3_set_duty_cycle(5.8,50,1);
+			float servo=5.8;
+			FTM3_set_duty_cycle(servo,50,1);
+			setmotorspeed(servo);
 		}
 		
 			uart0_put("\n\r");
-		/*
-			line_averager();
-			edge_finder();
-		int max=maxsmooth();
-		int min=minsmooth();
+			uart3_put("\n");
 
-		int left=leftedge();
-		int right=rightedge();
-		int middle=(((right-left)/2));
-		//uart3_put("driving");
-		//uart3_put("max:");
-		//uart3_putnumU(max);
-		//uart3_put("min:");
-		//uart3_putnumU(min);
-		uart3_put("Left:");
-		uart3_putnumU(left);
-		uart3_put("right:");
-		uart3_putnumU(right);
-		uart0_put("max:");
-		uart0_putnumU(max);
-		uart0_put("min:");
-		uart0_putnumU(min);
-		//uart0_put("right:");
-		//uart0_putnumU(right);
-		
-		if ((max<17500)&&(max>0)){
-			FTM0_set_duty_cycle(0,10000,1,1);
-			FTM0_set_duty_cycle(0,10000,1,0);
-			uart3_put("BREAK");
-			uart0_put("BREAK");
-			break;
-		}
-		//uart3_put("middle:");
-		uart0_put("middle:");
-		if(middle>0){
-		uart3_putnumU(middle);
-		uart0_putnumU(middle);
-		FTM0_set_duty_cycle(30,10000,1,1);
-		FTM0_set_duty_cycle(30,10000,1,0);
-		if (middle>70){
-			//uart3_put("right");
-			uart0_put("right");
-			FTM3_set_duty_cycle(7.0,50,1);
-		}else if(middle<60){
-			//uart3_put("left");
-			uart0_put("left");
-			FTM3_set_duty_cycle(4.5,50,1);
-		}else{
-			//uart3_put("straight");
-			uart0_put("straight");
-			FTM3_set_duty_cycle(5.8,50,1);
-		}
-	}
-				uart3_put("\n\r");
-				uart0_put("\n\r");
-*/
 /*
 		if (debugcamdata) {
 
@@ -265,13 +238,7 @@ int main(void)
 				GPIOB_PSOR |= (1 << 22);
 			}
 		}*/
-			/*for (int i=0; i<128;i++){
-				if (edge_line[i]==1){
-					uart0_putnumU(i);
-					uart_put("\n\r");
-				}
-			}*/
-		
+	//	pressed=0;
 	} //for
 } //main
 
@@ -463,12 +430,18 @@ void init_PIT(void){
 void init_GPIO(void){
 	// Enable LED and GPIO so we can see results
 	SIM_SCGC5 |= SIM_SCGC5_PORTB_MASK;
+	SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK;
 	
 	PORTB_PCR22 |= PORT_PCR_MUX(1);//RED LED
+	PORTE_PCR26 |= PORT_PCR_MUX(1);
+  PORTB_PCR21 |= PORT_PCR_MUX(1);
 	PORTB_PCR23 |= PORT_PCR_MUX(1);//camera SI
   PORTB_PCR9 |= PORT_PCR_MUX(1);//camera clk
-	GPIOB_PDDR = (1<<22)|(1<<23)|(1<<9);
+	GPIOB_PDDR = (1<<22)|(1<<23)|(1<<9)|(1<<21);
+	GPIOE_PDDR = (1<<26);
 	
+	GPIOB_PSOR = (1<<22) | (1<<21);
+	GPIOE_PSOR = (1<<26);
 	return;
 }
 
@@ -589,18 +562,64 @@ int minedge(void){
 	return j;
 }
 
+void Button_Init(void){
+	// Enable clock for Port C PTC6 button
+	SIM_SCGC5 |= SIM_SCGC5_PORTC_MASK;
+	// Configure the Mux for the button
+  PORTC_PCR6 |= PORT_PCR_MUX(1);
+	// Set the push button as an input
+	GPIOC_PDDR &= ~(1<<6);
+}
 
-/*int leftedge(void){
-	for(int i=0;i<127;i++){
-		if(edge_line[i]^edge_line[i+1]){
-			return i;
-		}
+void setmode(void){
+	if(!(GPIOC_PDIR & (1<<6))){
+		mode++;
+				GPIOB_PSOR = (1UL << 21) | (1UL << 22);
+		GPIOE_PSOR = 1UL << 26;
+	}
+	if(mode==1){
+		maxspeed=40;
+		turnspeed=30;
+
+		GPIOB_PCOR = (1<<22); //RED
+
+	}else if(mode==2){
+		maxspeed=43;
+		turnspeed=33;
+
+		GPIOE_PCOR = (1<<26); //GREEN
+
+	}else if(mode==3){
+		maxspeed=45;
+		turnspeed=35;
+
+		GPIOB_PCOR = (1<<21); //BLUE
+		
+	}else{
+		mode=0;
+		GPIOB_PSOR = (1UL << 21) | (1UL << 22);
+		GPIOE_PSOR = 1UL << 26;
 	}
 }
-int rightedge(void){
-	for(int i=127;i>0;i--){
-		if(edge_line[i]^edge_line[i-1]){
-			return i;
-		}
+
+void setmotorspeed(float servo){
+	for(int i=2; i>0;i--){
+	if (servo<(turncenter-(0.5*i))){ //servo<5.3
+		//Turning Left
+		FTM0_set_duty_cycle(turnspeed-(i*2.5),10000,1,1);//left
+		FTM0_set_duty_cycle(turnspeed,10000,1,0);//Right
+		return;
+		
+	}else if (servo>(turncenter+(0.5*i))){ //servo>6.3
+		//Turning Right
+		FTM0_set_duty_cycle(turnspeed,10000,1,1);//left
+		FTM0_set_duty_cycle(turnspeed-(i*2.5),10000,1,0);//Right
+		return;
 	}
-}*/
+}
+		//Straight
+		//Full speed
+		FTM0_set_duty_cycle(maxspeed,10000,1,1);
+		FTM0_set_duty_cycle(maxspeed,10000,1,0);
+		return;
+}

@@ -17,63 +17,67 @@
 %
 
 
-function plot_cams 
-
-%Send over bluetooth or serial
-serialPort = 'COM3';
-serialObject = serial(serialPort);
-%configure serial connection
-%serialObject.BaudRate = 115200; %(Default)
-serialObject.BaudRate = 9600;
-%serialObject.FlowControl = 'software';
-
-%Initiate serial connection
-fopen(serialObject);
-
-% This gets called on cleanup to ensure the stream gets closed
-finishup = onCleanup(@() myCleanupFun(serialObject));
-
-% Instantiate variables
-count = 1;
-trace = zeros(1, 128); %Stored Values for Raw Input
-bintrace = zeros(1,128); %Stored Values for Edge Detection
-smoothtrace  = zeros(1,128); %Stored Values for 5-Point Averager
-
-while (1)
-    % Check for data in the stream
-    if serialObject.BytesAvailable
-        val = fscanf(serialObject,'%i');
-        %val
-        if ((val == -1) || (val == -3)) % -1 and -3 are start keywords
-            count = 1;
-            val
-        elseif (val == -2) % End camera1 tx
-            if (count == 128)
-                plotdata(trace, 1);
-            end %otherwise there was an error and don't plot
-            count = 1;
-            %plotdata(trace);
-        elseif (val == -4) % End camera2 tx
-            count = 1;
-            plotdata(trace, 2);
-        else
-            trace(count) = val;
-            count = count + 1;
-        end % if 
-    end %bytes available    
-end % while(1)
-
-% Clean up the serial object
-fclose(serialObject);
-delete(serialObject);
-clear serialObject;
-
-end %plot_cams
+% function plot_cams 
+% 
+% %Send over bluetooth or serial
+% serialPort = 'COM3';
+% serialObject = serial(serialPort);
+% %configure serial connection
+% %serialObject.BaudRate = 115200; %(Default)
+% serialObject.BaudRate = 9600;
+% %serialObject.FlowControl = 'software';
+% 
+% %Initiate serial connection
+% fopen(serialObject);
+% 
+% % This gets called on cleanup to ensure the stream gets closed
+% finishup = onCleanup(@() myCleanupFun(serialObject));
+% 
+% % Instantiate variables
+% count = 1;
+% trace = zeros(1, 128); %Stored Values for Raw Input
+% bintrace = zeros(1,128); %Stored Values for Edge Detection
+% smoothtrace  = zeros(1,128); %Stored Values for 5-Point Averager
+% 
+% while (1)
+%     % Check for data in the stream
+%     if serialObject.BytesAvailable
+%         val = fscanf(serialObject,'%i');
+%         %val
+%         if ((val == -1) || (val == -3)) % -1 and -3 are start keywords
+%             count = 1;
+%             val
+%         elseif (val == -2) % End camera1 tx
+%             if (count == 128)
+%                 plotdata(trace, 1);
+%             end %otherwise there was an error and don't plot
+%             count = 1;
+%             %plotdata(trace);
+%         elseif (val == -4) % End camera2 tx
+%             count = 1;
+%             plotdata(trace, 2);
+%         else
+%             trace(count) = val;
+%             count = count + 1;
+%         end % if 
+%     end %bytes available    
+% end % while(1)
+% 
+% % Clean up the serial object
+% fclose(serialObject);
+% delete(serialObject);
+% clear serialObject;
+% 
+% end %plot_cams
 
 %*****************************************************************************************************************
 %*****************************************************************************************************************
+
+trace=[1000, 1500, 2000]
+plotdata(trace,1);
 
 function plotdata(trace, cam)
+
 drawnow;
 subplot(4,2,cam);
 %figure(figureHandle);
